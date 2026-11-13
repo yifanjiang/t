@@ -17,9 +17,8 @@
 ### STATIC MAP END ###
 
 # TODO
-# 1. standalone package search (all dev projects of a package)
-# 2. notify already broken sync
-# 3. use static database
+# 1. notify already broken sync
+# 2. use static database
 #
 # Check correctness of Devel and G:S
 # 
@@ -51,6 +50,97 @@
 # NOT SURE
 # PackageKit
 
+
+# Release label and the project used to look up the package
+release_projects=(
+    "SLE-16.2|SUSE:SLFO:Main"
+    "SLE-16.1|SUSE:SLFO:1.3"
+    "SLE-16.0|SUSE:SLFO:1.2"
+    "SLE-15-SP7|SUSE:SLE-15-SP7:Update"
+    "SLE-15-SP6|SUSE:SLE-15-SP6:Update"
+    "SLE-15-SP5|SUSE:SLE-15-SP5:Update"
+    "SLE-15-SP4|SUSE:SLE-15-SP4:Update"
+    "SLE-15-SP3|SUSE:SLE-15-SP3:Update"
+    "SLE-15-SP2|SUSE:SLE-15-SP2:Update"
+    "SLE-15-SP1|SUSE:SLE-15-SP1:Update"
+    "SLE-15|SUSE:SLE-15:Update"
+    "SLE-12-SP5|SUSE:SLE-12-SP5:Update"
+)
+
+# Print the devel project for a target project
+_devel_project_for_target() {
+    case "$1" in
+        SUSE:SLFO:Main)
+            echo "GNOME:Factory"
+            ;;
+        SUSE:SLFO:1.3|SUSE:SLFO:1.2)
+            echo "GNOME:STABLE:48"
+            ;;
+        SUSE:SLE-15-SP7:Update|SUSE:SLE-15-SP6:Update)
+            echo "GNOME:STABLE:45"
+            ;;
+        SUSE:SLE-15-SP5:Update|SUSE:SLE-15-SP4:Update)
+            echo "GNOME:STABLE:41"
+            ;;
+        SUSE:SLE-15-SP3:Update|SUSE:SLE-15-SP2:Update)
+            echo "GNOME:STABLE:3.34"
+            ;;
+        SUSE:SLE-15-SP1:Update|SUSE:SLE-15:Update)
+            echo "GNOME:STABLE:3.26"
+            ;;
+    esac
+}
+
+# Resolve the package's current target project (following inheritance)
+_resolve_target_project() {
+    local prj="$1"
+    local pkg="$2"
+
+    osc meta pkg "$prj" "$pkg" 2>/dev/null | head -1 | grep -oP 'project="\K[^"]+'
+}
+
+# Show the target and devel projects for the given package
+# Usage: show_devel_projects <package>
+
+show_devel_projects() {
+    local pkg="$1"
+    local entry label base target devel
+    local found=""
+
+    for entry in "${release_projects[@]}"; do
+        label=${entry%%|*}
+        base=${entry#*|}
+
+        target=$(_resolve_target_project "$base" "$pkg")
+        [ -z "$target" ] && continue
+        target=${target/GA/Update}
+
+        devel=$(_devel_project_for_target "$target")
+        [ -z "$devel" ] && continue
+
+        if osc ls "$devel" "$pkg" &>/dev/null; then
+            echo "$label: $target -> $devel"
+            found=1
+        fi
+    done
+
+    if [ -z "$found" ]; then
+        echo "Package $pkg not found in any devel project" >&2
+    fi
+}
+
+usage() {
+    echo "Usage: $0 <project> <package>" >&2
+    echo "       $0 <package>" >&2
+    exit 1
+}
+
+if [ $# -eq 1 ]; then
+    show_devel_projects "$1"
+    exit 0
+elif [ $# -ne 2 ]; then
+    usage
+fi
 
 prj=$1
 pkg=$2
@@ -174,15 +264,15 @@ esac
 # Rough handling the package outside the devel projects
 
 if test -z "$devel_project"; then
-    echo "$3 NOT in Devel:Desktop or GNOME:STABLE, direct submission to: $target_project";
+    echo "$pkg NOT in Devel:Desktop or GNOME:STABLE, direct submission to: $target_project";
     exit 0;
 fi
 
 # Output the process
 if [[ "$target_project" == *SUSE:SLFO* ]]; then
-    echo -e "$devel_project \n -> $target_project (git) $3\n"
+    echo -e "$devel_project \n -> $target_project (git) $pkg\n"
 else
-    echo -e "$devel_project \n -> $target_project $3\n"
+    echo -e "$devel_project \n -> $target_project $pkg\n"
 fi
 
 # Compare $devel_project and $target_project, warning when there is a difference
