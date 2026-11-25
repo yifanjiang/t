@@ -122,6 +122,22 @@ _resolve_target_project() {
     osc meta pkg "$prj" "$pkg" 2>/dev/null | head -1 | grep -oP 'project="\K[^"]+'
 }
 
+# Compare the package between the devel project and the target project.
+# Sets the global $diff_output; empty output means both sides are identical.
+_compare_projects() {
+    local pkg="$1"
+    local devel_project="$2"
+    local target_project="$3"
+    local -a osc_args=()
+
+    if [[ "$devel_project" == *Devel:Desktop* ]]; then
+        osc_args=(-A https://api.suse.de)
+    fi
+
+    diff_output=$(osc "${osc_args[@]}" rdiff \
+        "$devel_project" "$pkg" "$target_project" "$pkg" 2>&1)
+}
+
 # Probe the package status in one or two valid development projects
 # (GNOME:STABLE, Devel:Desktop) to get the correct $devel_project
 
@@ -156,7 +172,7 @@ _probe() {
 
 show_devel_projects() {
     local pkg="$1"
-    local entry label base target
+    local entry label base target sync
     local found=""
 
     for entry in "${release_projects[@]}"; do
@@ -169,7 +185,13 @@ show_devel_projects() {
 
         _probe_target_project "$pkg" "$target" || continue
         if [ -n "$devel_project" ]; then
-            echo "$label: $target -> $devel_project"
+            _compare_projects "$pkg" "$devel_project" "$target"
+            if [ -z "$diff_output" ]; then
+                sync=Yes
+            else
+                sync=No
+            fi
+            echo "$label: $target -> $devel_project sync:$sync"
             found=1
         fi
     done
@@ -266,13 +288,7 @@ else
 fi
 
 # Compare $devel_project and $target_project, warning when there is a difference
-
-osc_api_flag=""
-if [[ "$devel_project" == *Devel:Desktop* ]]; then
-    osc_api_flag='-A "https://api.suse.de"'
-fi
-
-diff_output=$(eval osc $osc_api_flag rdiff "$devel_project" "$pkg" "$target_project" "$pkg" 2>&1)
+_compare_projects "$pkg" "$devel_project" "$target_project"
 
 # No difference, exit
 [ -z "$diff_output" ] && exit 0

@@ -13,7 +13,8 @@ project name such as `SUSE:SLE-15-SP4:Update`.
 
 With two arguments, evaluate the submission path for `$package` in
 `$project`. With one argument, show the resolved target and devel
-project for `$package` for every supported release.
+project for `$package` for every supported release, together with
+whether the two projects are in sync.
 
 The target project is resolved from OBS metadata, so inherited packages
 show the maintenance project they resolve to. For example, `gdm` in
@@ -28,21 +29,25 @@ precedence over the corresponding `GNOME:STABLE` project. For example,
 __Examples__
 
 > Show the target and devel project for a package by release. Each line
-> is `<release>: <resolved target project> -> <devel project>`:
+> is `<release>: <resolved target project> -> <devel project> sync:<Yes|No>`:
 >
 > $ evaluate_submission_process.sh gdm
 >
-> SLE-16.2: SUSE:SLFO:Main -> GNOME:Factory
-> SLE-16.1: SUSE:SLFO:1.3 -> GNOME:STABLE:48
-> SLE-16.0: SUSE:SLFO:1.2 -> GNOME:STABLE:48
-> SLE-15-SP7: SUSE:SLE-15-SP7:Update -> GNOME:STABLE:45
-> SLE-15-SP6: SUSE:SLE-15-SP6:Update -> GNOME:STABLE:45
-> SLE-15-SP5: SUSE:SLE-15-SP4:Update -> GNOME:STABLE:41
-> SLE-15-SP4: SUSE:SLE-15-SP4:Update -> GNOME:STABLE:41
-> SLE-15-SP3: SUSE:SLE-15-SP2:Update -> GNOME:STABLE:3.34
-> SLE-15-SP2: SUSE:SLE-15-SP2:Update -> GNOME:STABLE:3.34
-> SLE-15-SP1: SUSE:SLE-15:Update -> GNOME:STABLE:3.26
-> SLE-15: SUSE:SLE-15:Update -> GNOME:STABLE:3.26
+> SLE-16.2: SUSE:SLFO:Main -> GNOME:Factory sync:Yes
+> SLE-16.1: SUSE:SLFO:1.3 -> GNOME:STABLE:48 sync:Yes
+> SLE-16.0: SUSE:SLFO:1.2 -> GNOME:STABLE:48 sync:No
+> SLE-15-SP7: SUSE:SLE-15-SP7:Update -> GNOME:STABLE:45 sync:Yes
+> SLE-15-SP6: SUSE:SLE-15-SP6:Update -> GNOME:STABLE:45 sync:Yes
+> SLE-15-SP5: SUSE:SLE-15-SP4:Update -> GNOME:STABLE:41 sync:Yes
+> SLE-15-SP4: SUSE:SLE-15-SP4:Update -> GNOME:STABLE:41 sync:Yes
+> SLE-15-SP3: SUSE:SLE-15-SP2:Update -> GNOME:STABLE:3.34 sync:Yes
+> SLE-15-SP2: SUSE:SLE-15-SP2:Update -> GNOME:STABLE:3.34 sync:Yes
+> SLE-15-SP1: SUSE:SLE-15:Update -> GNOME:STABLE:3.26 sync:Yes
+> SLE-15: SUSE:SLE-15:Update -> GNOME:STABLE:3.26 sync:Yes
+>
+> `sync:Yes` means `osc rdiff` reports no difference between the devel
+> project and the target project. `sync:No` means a difference exists,
+> which should be reviewed before working on the package.
 
 > With two arguments, the script evaluates the submission path and shows
 > the devel project followed by the target project.
