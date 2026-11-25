@@ -123,19 +123,53 @@ _resolve_target_project() {
 }
 
 # Compare the package between the devel project and the target project.
-# Sets the global $diff_output; empty output means both sides are identical.
+# Usage: _compare_projects <package> <devel project> <target project>
+#
+# Sets the globals:
+#   $diff_output  stdout of "osc rdiff" (the diff itself)
+#   $diff_error   stderr of "osc rdiff" (errors and warnings)
+#
+# Returns:
+#   0  both sides are identical
+#   1  differences exist ($diff_output holds the diff)
+#   2  the comparison failed ($diff_error holds the reason)
+#
+# Warnings printed on stderr by a successful osc run are ignored, so they
+# cannot be mistaken for a difference. stdin is redirected from /dev/null
+# so a credential prompt fails fast instead of hanging inside $(...).
 _compare_projects() {
     local pkg="$1"
     local devel_project="$2"
     local target_project="$3"
     local -a osc_args=()
+    local err_file rc
+
+    diff_output=""
+    diff_error=""
 
     if [[ "$devel_project" == *Devel:Desktop* ]]; then
         osc_args=(-A https://api.suse.de)
     fi
 
+    if ! err_file=$(mktemp); then
+        diff_error="cannot create a temporary file"
+        return 2
+    fi
+
     diff_output=$(osc "${osc_args[@]}" rdiff \
-        "$devel_project" "$pkg" "$target_project" "$pkg" 2>&1)
+        "$devel_project" "$pkg" "$target_project" "$pkg" \
+        2>"$err_file" </dev/null)
+    rc=$?
+    diff_error=$(<"$err_file")
+    rm -f "$err_file"
+
+    if [ "$rc" -ne 0 ]; then
+        [ -z "$diff_error" ] && diff_error="osc rdiff exited with status $rc"
+        return 2
+    fi
+
+    [ -z "$diff_output" ] && return 0
+    return 1
 }
 
 # Probe the package status in one or two valid development projects
@@ -186,11 +220,14 @@ show_devel_projects() {
         _probe_target_project "$pkg" "$target" || continue
         if [ -n "$devel_project" ]; then
             _compare_projects "$pkg" "$devel_project" "$target"
-            if [ -z "$diff_output" ]; then
-                sync=Yes
-            else
-                sync=No
-            fi
+            case $? in
+                0) sync=Yes ;;
+                1) sync=No ;;
+                *)
+                    sync=Error
+                    echo "Warning: cannot compare $pkg between $devel_project and $target: ${diff_error%%$'\n'*}" >&2
+                    ;;
+            esac
             echo "$label: $target -> $devel_project sync:$sync"
             found=1
         fi
@@ -289,9 +326,17 @@ fi
 
 # Compare $devel_project and $target_project, warning when there is a difference
 _compare_projects "$pkg" "$devel_project" "$target_project"
-
-# No difference, exit
-[ -z "$diff_output" ] && exit 0
+case $? in
+    0)
+        # No difference, exit
+        exit 0
+        ;;
+    2)
+        echo "Error: cannot compare $pkg between $devel_project and $target_project:" >&2
+        echo "$diff_error" >&2
+        exit 1
+        ;;
+esac
 
 echo "Warning: Differences detected for package $pkg between $devel_project and $target_project."
 read -r -p "Do you want to review the differences? (y/N): " choice

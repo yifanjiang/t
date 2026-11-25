@@ -29,7 +29,8 @@ precedence over the corresponding `GNOME:STABLE` project. For example,
 __Examples__
 
 > Show the target and devel project for a package by release. Each line
-> is `<release>: <resolved target project> -> <devel project> sync:<Yes|No>`:
+> is `<release>: <resolved target project> -> <devel project> sync:<Yes|No|Error>`
+> (the `sync:` values below are illustrative):
 >
 > $ evaluate_submission_process.sh gdm
 >
@@ -47,7 +48,14 @@ __Examples__
 >
 > `sync:Yes` means `osc rdiff` reports no difference between the devel
 > project and the target project. `sync:No` means a difference exists,
-> which should be reviewed before working on the package.
+> which should be reviewed before working on the package. `sync:Error`
+> means the comparison itself failed (for example a missing package,
+> an authentication problem or a network error); the reason is printed
+> as a warning on stderr.
+>
+> In the two-argument mode, a failed comparison is reported as an error
+> and the script exits with a non-zero status instead of offering to
+> review the differences.
 
 > With two arguments, the script evaluates the submission path and shows
 > the devel project followed by the target project.
