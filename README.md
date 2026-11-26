@@ -1,4 +1,4 @@
-# t⨀⨀l
+# tOOl
 
 ## `evaluate_submission_process.sh`
 
