@@ -4,7 +4,7 @@
 
 ### Usage
 
-```sh
+```text
 evaluate_submission_process.sh $project $package
 evaluate_submission_process.sh $package
 
@@ -34,7 +34,7 @@ Show the target and devel project for a package by release. Each line follows:
 
 *(The `sync:` values below are illustrative.)*
 
-```sh
+```text
 $ evaluate_submission_process.sh gdm
 SLE-16.2: SUSE:SLFO:Main -> GNOME:Factory sync:Yes
 SLE-16.1: SUSE:SLFO:1.3 -> GNOME:STABLE:48 sync:Yes
@@ -65,7 +65,7 @@ The command below shows the submission order for `SUSE:SLE-15-SP3:Update/gdm`:
 1. Submit first to `GNOME:STABLE:3.34` as the development project.
 2. Submit then to `SUSE:SLE-15-SP2:Update`. Implicitly, `SP3/gdm` inherits from `SP2:Update/gdm`, so submitting to `SP2:Update` is sufficient for both.
 
-```sh
+```text
 $ evaluate_submission_process.sh SLE-15-SP3 gdm
 GNOME:STABLE:3.34
 
@@ -78,7 +78,7 @@ Likewise, the command below shows the submission order for `SUSE:SLE-15-SP1:Upda
 1. Submit first to `Devel:Desktop:SLE-15-SP1` as the development project (forked from `SLE-15`).
 2. Submit then to `SUSE:SLE-15-SP1:Update`.
 
-```sh
+```text
 $ evaluate_submission_process.sh SLE-15-SP1 flatpak
 Devel:Desktop:SLE-15-SP1
  
@@ -98,13 +98,13 @@ Differences can arise for several reasons:
 
 Because these cases require context, a **manual review** is typically needed to decide how to proceed. **Synchronizing the package or clarifying the difference before starting work** is strongly recommended.
 
-```sh
+```text
 $ evaluate_submission_process.sh SLE-15-SP4 gdm
 GNOME:STABLE:41
 
  -> SUSE:SLE-15-SP4:Update
 
-Warning: Differences detected for package gdm between GNOME:STABLE:41 and SUSE:SLE-15-SP4:Update.
+Warning: Differences detected ```for``` package gdm between GNOME:STABLE:41 and SUSE:SLE-15-SP4:Update.
 
 Do you want to review the differences? (y/N): y
 
